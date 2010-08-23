@@ -1,0 +1,79 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+MSG_CONFIRM	pugbot.py	/^    MSG_CONFIRM = 0x2$/;"	v	class:PugBot
+MSG_ERROR	pugbot.py	/^    MSG_ERROR   = 0x3$/;"	v	class:PugBot
+MSG_INFO	pugbot.py	/^    MSG_INFO    = 0x1$/;"	v	class:PugBot
+PugApp	pugbot.py	/^from pugapp import PugApp$/;"	i
+PugBot	pugbot.py	/^class PugBot(irc.IRCClient):$/;"	c
+PugBotFactory	pugbot.py	/^class PugBotFactory(protocol.ReconnectingClientFactory):$/;"	c
+__call__	pugbot.py	/^        def __call__(self, f):$/;"	m	class:PugBot.command	file:
+__init__	pugbot.py	/^        def __init__(self, name, access=None):$/;"	m	class:PugBot.command
+__init__	pugbot.py	/^    def __init__(self, app):$/;"	m	class:PugBot
+__init__	pugbot.py	/^    def __init__(self, app):$/;"	m	class:PugBotFactory
+_authserv_login	pugbot.py	/^    def _authserv_login(self):$/;"	m	class:PugBot
+_colorize	pugbot.py	/^    def _colorize(self, str, type):$/;"	m	class:PugBot
+_commands	pugbot.py	/^_commands = {}$/;"	v
+_get_access	pugbot.py	/^    def _get_access(modes):$/;"	m	class:PugBot
+_get_nick	pugbot.py	/^    def _get_nick(user):$/;"	m	class:PugBot
+_has_color	pugbot.py	/^    def _has_color(str):$/;"	m	class:PugBot
+_list_players	pugbot.py	/^    def _list_players(self, channel):$/;"	m	class:PugBot
+_nickserv_login	pugbot.py	/^    def _nickserv_login(self):$/;"	m	class:PugBot
+_ping	pugbot.py	/^    def _ping(self):$/;"	m	class:PugBot
+_strip_all	pugbot.py	/^    def _strip_all(str):$/;"	m	class:PugBot
+_teams	pugbot.py	/^    def _teams(self, channel):$/;"	m	class:PugBot
+_who	pugbot.py	/^    def _who(self, channel):$/;"	m	class:PugBot
+action	pugbot.py	/^    def action(self, user, channel, data):$/;"	m	class:PugBot
+app	pugbot.py	/^    app = PugApp()$/;"	v	class:PugBotFactory
+buildProtocol	pugbot.py	/^    def buildProtocol(self, addr):$/;"	m	class:PugBotFactory
+clientConnectionFailed	pugbot.py	/^    def clientConnectionFailed(self, connector, reason):$/;"	m	class:PugBotFactory
+clientConnectionLost	pugbot.py	/^    def clientConnectionLost(self, connector, reason):$/;"	m	class:PugBotFactory
+cmd_add	pugbot.py	/^    def cmd_add(self, user, channel, msg):$/;"	m	class:PugBot
+cmd_bear	pugbot.py	/^    def cmd_bear(self, user, channel, msg):$/;"	m	class:PugBot
+cmd_endgame	pugbot.py	/^    def cmd_endgame(self, user, channel, msg):$/;"	m	class:PugBot
+cmd_join	pugbot.py	/^    def cmd_join(self, user, channel, msg):$/;"	m	class:PugBot
+cmd_list	pugbot.py	/^    def cmd_list(self, user, channel, msg):$/;"	m	class:PugBot
+cmd_mumble	pugbot.py	/^    def cmd_mumble(self, user, channel, msg):$/;"	m	class:PugBot
+cmd_remove	pugbot.py	/^    def cmd_remove(self, user, channel, msg):$/;"	m	class:PugBot
+cmd_rtd	pugbot.py	/^    def cmd_rtd(self, user, channel, msg):$/;"	m	class:PugBot
+cmd_server	pugbot.py	/^    def cmd_server(self, user, channel, msg):$/;"	m	class:PugBot
+cmd_startgame	pugbot.py	/^    def cmd_startgame(self, user, channel, msg):$/;"	m	class:PugBot
+cmd_version	pugbot.py	/^    def cmd_version(self, user, channel, msg):$/;"	m	class:PugBot
+command	pugbot.py	/^    class command(object):$/;"	c	class:PugBot
+connectSSL	pugbot.py	/^def connectSSL(irc_server, irc_port, app):$/;"	f
+connectTCP	pugbot.py	/^def connectTCP(irc_server, irc_port, app):$/;"	f
+describe	pugbot.py	/^    def describe(self, channel, action):$/;"	m	class:PugBot
+exec_cmd	pugbot.py	/^            def exec_cmd(*args):$/;"	f	function:PugBot.command.__call__
+irc	pugbot.py	/^from twisted.words.protocols import irc$/;"	i
+irc_RPL_ENDOFWHO	pugbot.py	/^    def irc_RPL_ENDOFWHO(self, prefix, args):$/;"	m	class:PugBot
+irc_RPL_ENDOFWHOIS	pugbot.py	/^    def irc_RPL_ENDOFWHOIS(self, prefix, args):$/;"	m	class:PugBot
+irc_RPL_WHOISACCOUNT	pugbot.py	/^    def irc_RPL_WHOISACCOUNT(self, prefix, args):$/;"	m	class:PugBot
+irc_RPL_WHOISUSER	pugbot.py	/^    def irc_RPL_WHOISUSER(self, prefix, args):$/;"	m	class:PugBot
+irc_RPL_WHOREPLY	pugbot.py	/^    def irc_RPL_WHOREPLY(self, prefix, args):$/;"	m	class:PugBot
+joined	pugbot.py	/^    def joined(self, channel):$/;"	m	class:PugBot
+kickedFrom	pugbot.py	/^    def kickedFrom(self, channel, kicker, message):$/;"	m	class:PugBot
+left	pugbot.py	/^    def left(self, channel):$/;"	m	class:PugBot
+logging	pugbot.py	/^import logging$/;"	i
+modeChanged	pugbot.py	/^    def modeChanged(self, user, channel, set, modes, args):$/;"	m	class:PugBot
+msg	pugbot.py	/^    def msg(self, user, message, type=None):$/;"	m	class:PugBot
+nickChanged	pugbot.py	/^    def nickChanged(self, nick):$/;"	m	class:PugBot
+notice	pugbot.py	/^    def notice(self, user, message, type=None):$/;"	m	class:PugBot
+noticed	pugbot.py	/^    def noticed(self, user, channel, msg):$/;"	m	class:PugBot
+pong	pugbot.py	/^    def pong(self, user, secs):$/;"	m	class:PugBot
+privmsg	pugbot.py	/^    def privmsg(self, user, channel, msg):$/;"	m	class:PugBot
+protocol	pugbot.py	/^    protocol = PugBot$/;"	v	class:PugBotFactory
+protocol	pugbot.py	/^from twisted.internet import reactor, protocol, task$/;"	i
+public_ip	pugbot.py	/^from pugserver import public_ip$/;"	i
+re	pugbot.py	/^import re$/;"	i
+reactor	pugbot.py	/^from twisted.internet import reactor, protocol, task$/;"	i
+signedOn	pugbot.py	/^    def signedOn(self):$/;"	m	class:PugBot
+stderr	pugbot.py	/^from sys import stderr$/;"	i
+task	pugbot.py	/^from twisted.internet import reactor, protocol, task$/;"	i
+userKicked	pugbot.py	/^    def userKicked(self, kickee, channel, kicker, message):$/;"	m	class:PugBot
+userLeft	pugbot.py	/^    def userLeft(self, user, channel):$/;"	m	class:PugBot
+userQuit	pugbot.py	/^    def userQuit(self, user, quitMessage):$/;"	m	class:PugBot
+userRenamed	pugbot.py	/^    def userRenamed(self, oldname, newname):$/;"	m	class:PugBot
+whois	pugbot.py	/^    def whois(self, nickname, server=None):$/;"	m	class:PugBot
