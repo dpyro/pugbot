@@ -9,7 +9,6 @@ import re
 from twisted.words.protocols import irc
 from twisted.internet import reactor, protocol, task
 
-from pugapp import PugApp
 from pugdata import *
 from pugserver import public_ip
 
@@ -403,8 +402,3 @@ class PugBotFactory(protocol.ReconnectingClientFactory):
         self.logger.error(msg)
         protocol.ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
-if __name__ == '__main__':
-    print public_ip()
-    app = PugApp()
-    connectTCP('irc.freenode.net', 6667, app)
-    app.run()

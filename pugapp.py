@@ -5,6 +5,7 @@ import sqlalchemy
 from colorama import Fore, Back, Style
 import colorama
 
+from pugbot import *
 from pugdata import *
 from pugserver import network_ip, public_ip, PugServer
 
@@ -36,6 +37,8 @@ class PugApp(object):
         self.public_ip = public_ip()
         self.ip = network_ip()
         self.print_info("* Discovered public ip: %s, network ip: %s" % (self.public_ip, self.ip))
+
+        connectTCP(self.irc_server, self.irc_port, self)
 
         self.rcon = PugServer(self.rcon_server, self.rcon_port, self.rcon_password, self.rcon_log_port)
         self.print_rcon("* authenticated for rcon: %s:%d, listening on %s:%d" %
@@ -220,4 +223,8 @@ class PugAppPlugin(object):
 
     def on_serverinfo(self, info):
         pass
+
+if __name__ == '__main__':
+    app = PugApp()
+    app.run()
 
