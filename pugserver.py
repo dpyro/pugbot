@@ -30,7 +30,7 @@ class PugServer(object):
         self.query = SourceQuery(address, port)
         self.srcon = SourceRcon(address, port, rcon_pass)
         self.logger = SourceLogListener((self.network_ip, local_port), (address, port), PugServerLogParser(self))
-        self.rcon('logaddress_add "%s:%d"' % (self.public_ip, local_port))
+        self.rcon('logaddress_add "{0}:{1}"'.format(self.public_ip, local_port))
 
     def connect(self):
         self.query.connect()
@@ -63,10 +63,10 @@ class PugServer(object):
             file = 'cevo_stopwatch.cfg'
         else:
             file = 'cevo_push.cfg'
-        return self.rcon('exec "%s"' % (file))
+        return self.rcon('exec "{0}"'.format(file))
 
     def changelevel(self, map):
-        result = self.rcon('changelevel "%s"' % (map))
+        result = self.rcon('changelevel "{0}"'.format(map))
         return "No such map" not in result
 
     def status(self):

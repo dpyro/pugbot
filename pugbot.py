@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # vim: enc=utf-8
 
+from __future__ import print_function
+
 from sys import stderr
 import logging
 import re
@@ -75,148 +77,147 @@ class PugBot(irc.IRCClient):
     # overrides
     def msg(self, user, message, type=None):
         message_stripped = self._strip_all(message)
-        log_message = u"%s (msg) ← %s" % (user, message_stripped)
+        log_message = u"{0} (msg) ← {1}".format(user, message_stripped)
         self.logger.info(log_message) if user != self.app.irc_server else self.logger.debug(log_message)
         if type is not None:
             message = self._colorize(message, type)
-        irc.IRCClient.msg(self, user, message)
+        nick = PugBot._get_nick(user)
+        irc.IRCClient.msg(self, nick, message)
 
     def notice(self, user, message, type=None):
         message_stripped = self._strip_all(message)
-        self.logger.info(u"%s (notice) ← %s" % (user, message_stripped))
+        self.logger.info(u"{0} (notice) ← {1}".format(user, message_stripped))
         if type is not None:
             message = self._colorize(message, type)
-        user = user.split('!', 1)[0]
-        irc.IRCClient.notice(self, user, message)
+        nick = PugBot._get_nick(user)
+        irc.IRCClient.notice(self, nick, message)
 
     def describe(self, channel, action):
-        self.logger.info("%s (action) ← %s" % (channel, action))
+        self.logger.info("{0} (action) ← {1}".format(channel, action))
         irc.IRCClient.describe(self, channel, action)
 
     def whois(self, nickname, server=None):
-        self.logger.debug(u"Requested WHOIS %s" % (nickname))
+        self.logger.debug(u"Requested WHOIS {0}".format(nickname))
         irc.IRCClient.whois(self, nickname, server)
     
     # callbacks
     def signedOn(self):
-        self.logger.info(u"Signed onto IRC network %s:%d" % (self.app.irc_server, self.app.irc_port))
+        self.logger.info(u"Signed onto IRC network {0}:{1}".format(self.app.irc_server, self.app.irc_port))
         self._nickserv_login()
         self.join(self.app.irc_channel)
-        self.keep_alive.start(60)
+        self.keep_alive.start(100)
 
     def joined(self, channel):
-        self.app.print_irc("* joined channel %s" % (channel))
-        self.logger.info(u"Joined channel %s" % (channel))
+        self.app.print_irc("* joined channel {0}".format(channel))
+        self.logger.info(u"Joined channel {0}".format(channel))
         self._who(channel)
         self.whois(self.app.irc_nick)
 
     def left(self, channel):
-        self.app.print_irc("* left channel %s" % (channel))
-        self.logger.info(u"Left channel %s" % (channel))
+        self.app.print_irc("* left channel {0}".format(channel))
+        self.logger.info(u"Left channel {0}".format(channel))
         self.nickmodes.clear()
+        self.users.clear()
 
     def kickedFrom(self, channel, kicker, message):
-        self.logger.warning(u"Kicked from %s by %s (%s)" % (channel, kicker, message))
+        self.logger.warning(u"Kicked from {0} by {1} ({2})".format(channel, kicker, message))
         self.nickmodes.clear()
+        self.users.clear()
         task.deferLater(reactor, 5.0, self.join, self.app.irc_channel)
 
     def nickChanged(self, nick):
-        self.logger.warning(u"Nick changed to: %s" % (nick))
+        self.logger.warning(u"Nick changed to: {0}".format(nick))
 
     def privmsg(self, user, channel, msg):
         msg = self._strip_all(msg)
-        self.logger.info(u":%s (msg) → %s: %s" % (user, channel, msg))
+        self.logger.info(u":{0} (msg) → {1}: {2}".format(user, channel, msg))
         cmd = msg.split(' ', 1)[0].lower()
-        nick = user.split('!', 1)[0]
+        nick = PugBot._get_nick(user)
         if cmd in _commands:
             cmd_f, cmd_access = _commands[cmd]
             if cmd_access is None:
                 cmd_f(self, user, channel, msg)
-            elif nick not in self.nickmodes:
-                self._who(channel)
+            elif nick not in self.users:
+                self.whois(nick)
                 self.notice(user, "Refreshing access list, please try again shortly.", self.MSG_ERROR)
-            elif self.nickmodes[nick] >= cmd_access:
+            elif self.users[nick].irc_access >= cmd_access:
                 cmd_f(self, user, channel, msg)
             else:
                 self.notice(user, "You don't have access to this command!", self.MSG_ERROR)
 
     
     def noticed(self, user, channel, msg):
-        self.logger.info(u"%s (notice) → %s: %s" % (user, channel, msg))
+        self.logger.info(u"{0} (notice) → {1}: {2}".format(user, channel, msg))
 
     def action(self, user, channel, data):
-        self.logger.info(u"%s (action) → %s: %s" % (user, channel, msg))
+        self.logger.info(u"{0} (action) → {1}: {2}".format(user, channel, msg))
+
+    def _purge_user(self, user, reason):
+        self.logger.info(u"{0}: {1}".format(user, reason))
+        nick = PugBot._get_nick(user)
+        if nick in self.users:
+            p_user = self.users[nick]
+            if p_user in self.app.players:
+                self.app.remove(p_user)
+                self.logger.debug(u"Removed user {0} from game ({1})".format(nick, reason))
+                self._list_players(channel)
+            del self.users[nick]
+
 
     def userLeft(self, user, channel):
-        nick = PugBot._get_nick(user)
-        if nick in self.nickmodes:
-            del self.nickmodes[nick]
-        self.logger.info("%s left %s" % (user, channel))
-        if nick in self.app.players:
-            self.app.remove(nick)
-            self.logger.debug(u"Removed user %s from game (left %s)" % (user, channel))
-            self._list_players(channel)
+        reason = u"left {0}".format(channel)
+        if channel.lower() == self.app.irc_channel:
+            self._purge_user(user, reason)
 
     def userQuit(self, user, quitMessage):
-        nick = PugBot._get_nick(user)
-        if nick in self.nickmodes:
-            del self.nickmodes[nick]
-        self.logger.info("%s quit" % (user))
-        if nick in self.app.players:
-            self.app.remove(nick)
-            self.logger.debug(u"Removed user %s from game (quit)" % (user))
-            self._list_players(channel)
+        reason = u"quit ({0})".format(quitMessage)
+        self._purge_user(user, reason)
 
     def userKicked(self, kickee, channel, kicker, message):
-        nick = PugBot._get_nick(kickee)
-        if nick in self.nickmodes:
-            del self.nickmodes[nick]
-        self.logger.info("%s kicked by %s in %s" % (kickee, kicker, channel))
-        if nick in self.app.players:
-            self.app.remove(nick)
-            self.logger.debug(u"Removed user %s from game (kicked by %s in %s (%s))" % (kickee, kicker, channel, message))
-            self._list_players(channel)
+        reason = u"kicked by {0} in {1} ({2})".format(kicker, channel, message)
+        if channel.lower() == self.app.irc_channel:
+            self._purge_user(kickee, reason)
 
     def userRenamed(self, oldname, newname):
-        if oldname in self.nickmodes:
-            modes = self.nickmodes[oldname]
-            del self.nickmodes[oldname]
-            self.nickmodes[newname] = modes
-        self.logger.info("%s renamed to %s" % (oldname, newname))
-        if oldname in self.app.players:
-            self.app.changename(oldname, newname)
-            self.logger.debug(u"User renamed: %s → %s" % (oldname, newname))
+        if oldname in self.users:
+            p_user = self.users[oldname]
+            p_user.irc_name = newname
+            self.db_session.add(p_user)
+            self.db_session.commit()
+            self.users[newname] = p_user
+            del self.users[oldname]
+        self.logger.info(u"User renamed: {0} → {1}".format(oldname, newname))
 
     def modeChanged(self, user, channel, set, modes, args):
         if channel.lower() == self.app.irc_channel:
             self._who(channel)
         mode_prefix = '+' if set else '-'
-        for i in range(len(modes)):
-            mode = modes[i]
-            arg = args[i]
-            self.logger.debug(u"%s → %s mode change: %s%s %s" % (user, channel, mode_prefix, mode, arg))
+        for mode, arg in zip(modes, args):
+            self.logger.debug(u"{0} → {1} mode change: {2}{3} {4}".format(
+                user, channel, mode_prefix, mode, arg))
 
     def pong(self, user, secs):
-        self.logger.debug(u"%s (pong) ← %f" % (user, secs))
+        self.logger.debug(u"{0} (pong) ← {1}".format(user, secs))
 
     def irc_RPL_WHOREPLY(self, prefix, args):
         me, chan, uname, host, server, nick, modes, name = args
-        log_msg = u"Recieved WHOREPLY: chan: %s, uname: %s, host: %s, server: %s, nick: %s, modes: %s, name: %s"
-        self.logger.debug(log_msg % (chan, uname, host, server, nick, modes, name))
+        log_msg = u"Recieved WHOREPLY: chan: {0}, uname: {1}, host: {2}, server: {3}, nick: {4}, modes: {5}, name: {6}".format(
+            chan, uname, host, server, nick, modes, name)
+        self.logger.debug(log_msg)
         if chan.lower() == self.app.irc_channel:
             access = PugBot._get_access(modes)
             self.nickmodes[nick] = access
-            self.logger.debug(u"Set %s to access level %d" % (nick, access))
+            self.logger.debug(u"Set {0} to access level {1}".format(nick, access))
 
     def irc_RPL_ENDOFWHO(self, prefix, args):
-        self.logger.debug(u"Recieved WHO list: %s" % (args))
+        self.logger.debug(u"Recieved WHO list: {0}".format(args))
 
     def irc_RPL_WHOISUSER(self, prefix, args):
-        self.logger.debug(u"WHOIS list: %s" % (args))
+        self.logger.debug(u"WHOIS list: {0}".format(args))
 
     def irc_RPL_WHOISACCOUNT(self, prefix, args):
         me, nick, account, msg = args
-        self.logger.debug(u"WHOIS account: nick: %s, account %s" % (nick, account))
+        self.logger.debug(u"WHOIS account: nick: {0}, account {1}".format(nick, account))
         if nick in self.users:
             self.users[nick].irc_account = account
         else:
@@ -224,7 +225,7 @@ class PugBot(irc.IRCClient):
             self.users[nick] = p_user
 
     def irc_RPL_ENDOFWHOIS(self, prefix, args):
-        self.logger.debug(u"Recieved WHOIS: %s" % (args))
+        self.logger.debug(u"Recieved WHOIS: {0}".format(args))
     
     @staticmethod
     def _get_nick(user):
@@ -242,43 +243,42 @@ class PugBot(irc.IRCClient):
         return PugUser.IRC_USER
     
     def _who(self, channel):
-        msg = 'WHO %s' % channel.lower()
-        self.logger.debug(u"Requested %s" % (msg))
+        msg = 'WHO {0}'.format(channel.lower())
+        self.logger.debug(u"Requested {0}".format(msg))
         self.sendLine(msg)
 
     def _ping(self):
         self.ping(self.app.irc_server)
 
     def _nickserv_login(self):
-        self.msg('NickServ@services.', 'IDENTIFY %s %s' % (self.nickname, self.password))
+        self.msg('NickServ@services.', 'IDENTIFY {0} {1}'.format(self.nickname, self.password))
 
     def _authserv_login(self):
-        self.msg('AuthServ@services.', 'AUTH %s %s' % (self.nickname, self.password))
+        self.msg('AuthServ@services.', 'AUTH {0} {1}'.format(self.nickname, self.password))
     
     def _list_players(self, channel):
         players = self.app.players
         if len(players) == 0:
             self.msg(channel, "No players are currently signed up.", self.MSG_INFO)
         else:
-            player_list = ', '.join(self.app.players)
-            suffix = ''
-            if len(self.app.players) != 1:
-                suffix = 's'
-            self.msg(channel, "%d player%s: %s" % (len(players), suffix, player_list), self.MSG_INFO)
+            player_list = ', '.join((p.irc_nick for p in self.app.players))
+            suffix = 's' if len(self.app.players) != 1 else ''
+            self.msg(channel, "{0} player{1}: {2}".format(len(players), suffix, player_list), self.MSG_INFO)
 
     def _teams(self, channel):
         team1, team2 = self.app.teams()
-        team1 = ', '.join([p.split('!', 1)[0] for p in team1])
-        team2 = ', '.join([p.split('!', 1)[0] for p in team2])
-        self.msg(channel, "10,01BLU Team: %s" % (team1))
-        self.msg(channel, "05,01RED Team: %s" % (team2))
-        msg_red = "You have been assigned to RED team. Connect as soon as possible to %s:%d" % (self.app.rcon_server, self.app.rcon_port)
-        msg_blu = "You have been assigned to BLU team. Connect as soon as possible to %s:%d" % (self.app.rcon_server, self.app.rcon_port)
-        [self.msg(p.split('!', 1)[0], msg_red, MSG_INFO) for p in team1]
-        [self.msg(p.split('!', 1)[0], msg_blu, MSG_INFO) for p in team2]
+        team1 = ', '.join((p.irc_nick for p in team1))
+        team2 = ', '.join((p.irc_nick for p in team2))
+        self.msg(channel, "10,01BLU Team: {0}".format(team1))
+        self.msg(channel, "05,01RED Team: {0}".format(team2))
+        msg_red = "You have been assigned to RED team. Connect as soon as possible to {0}:{1}".format(
+            self.app.rcon_server, self.app.rcon_port)
+        msg_blu = "You have been assigned to BLU team. Connect as soon as possible to {0}:{1}".format(
+            self.app.rcon_server, self.app.rcon_port)
+        [self.msg(p.irc_nick, msg_red, MSG_INFO) for p in team1]
+        [self.msg(p.irc_nick, msg_blu, MSG_INFO) for p in team2]
 
-
-    # FIXME better
+    
     class command(object):
         def __init__(self, name, access=None):
             self.name = name
@@ -298,7 +298,7 @@ class PugBot(irc.IRCClient):
                 try:
                     f(args)
                 except Exception as e:
-                    print >> stderr, Fore.RED + e
+                    print(Fore.RED + e, file=stderr)
                     self.logger.exception(e)
 
             return exec_cmd
@@ -309,12 +309,13 @@ class PugBot(irc.IRCClient):
         self.app.startgame()
         self.msg(channel, "Game started. Type !add to join the game.", self.MSG_INFO)
 
-    @command([ '!add', '!a' ])
+    @command([ '!add', '!a' ], PugUser.IRC_USER)
     def cmd_join(self, user, channel, msg):
+        nick = PugBot._get_nick(user)
+        p_user = self.users[nick]
         if self.app.game is not None:
-            nick = PugBot._get_nick(user)
-            if nick not in self.app.players:
-                self.app.add(nick)
+            if p_user not in self.app.players:
+                self.app.add(p_user)
                 self.notice(user, "You successfully added to the game.", self.MSG_CONFIRM)
                 if len(self.app.players) >= 12:
                     self._teams(channel)
@@ -329,11 +330,12 @@ class PugBot(irc.IRCClient):
     def cmd_add(self, user, channel, msg):
         self.notice(user, "Please use !add instead.", self.MSG_ERROR)
 
-    @command([ '!remove', '!r' ])
+    @command([ '!remove', '!r' ], PugUser.IRC_USER)
     def cmd_remove(self, user, channel, msg):
         nick = PugBot._get_nick(user)
-        if nick in self.app.players:
-            self.app.remove(nick)
+        p_user = self.users[nick]
+        if p_user in self.app.players:
+            self.app.remove(p_user)
             self.notice(user, "You successfully removed from the game.", self.MSG_CONFIRM)
             self._list_players(channel)
         else:
@@ -357,25 +359,38 @@ class PugBot(irc.IRCClient):
     @command('!server')
     def cmd_server(self, user, channel, msg):
         info = self.app.serverinfo()
-        self.msg(channel, "connect %s:%d;" % (self.app.rcon_server, info['port']), self.MSG_INFO)
-        self.msg(channel, "%(map)s | %(numplayers)d / %(maxplayers)d | stv: %(specport)s" % (info), self.MSG_INFO)
+        self.msg(channel, "connect {0}:{1};".format(self.app.rcon_server, info['port']), self.MSG_INFO)
+        #TODO: Why does it give key errors when using format()?
+        self.msg(channel, "%(map)s | %(numplayers)s / %(maxplayers)s | stv: %(specport)s" % (info), self.MSG_INFO)
 
     @command('!mumble')
     def cmd_mumble(self, user, channel, msg):
-        self.msg(channel, "Mumble is the voice server used by players to communicate with each other.", self.MSG_INFO)
-        self.msg(channel, "Mumble IP: %s  port: %d" % (self.app.mumble_server, self.app.mumble_port), self.MSG_INFO)
+        self.msg(channel, ("Mumble is the shiniest new voice server/client used by players to communicate with each other.\n"
+                          "It's not laggy as hell like Ventrilo and has a sweet ingame overlay. Unfortunately, Europeans use it.\n"
+                          "Mumble IP: {0}  port: {1}").format(self.app.mumble_server, self.app.mumble_port), self.MSG_INFO)
 
     @command('!version')
     def cmd_version(self, user, channel, msg):
         self.msg(channel, "PugBot: 3alpha", self.MSG_INFO)
 
-    @command('!rtd')
-    def cmd_rtd(self, user, channel, msg):
-        self.msg(channel, "Don't be a noob, %s." % (user), self.MSG_INFO)
-
     @command('!bear')
     def cmd_bear(self, user, channel, msg):
         self.describe(channel, "goes 4rawr!", self.MSG_INFO)
+    
+    @command('!magnets')
+    def cmd_magnets(self, user, channl, msg):
+        self.msg(channel, "What am I, a scientist?", self.MSG_INFO)
+
+    @command('!rtd')
+    def cmd_rtd(self, user, channel, msg):
+        nick = PugBot._get_nick(user)
+        self.msg(channel, "Don't be a noob, {0}.".format(nick), self.MSG_INFO)
+
+    @command('!whattimeisit')
+    def cmd_whattimeisit(self, user, channel, msg):
+        nick = PugBot._get_nick(user)
+        self.msg(channel, "Go back to #tf2.pug.na, {0}.".format(nick))
+
 
 class PugBotFactory(protocol.ReconnectingClientFactory):
     protocol = PugBot
@@ -391,13 +406,13 @@ class PugBotFactory(protocol.ReconnectingClientFactory):
         return p
 
     def clientConnectionLost(self, connector, reason):
-        msg = "connection lost, reconnecting: %s" % (reason)
+        msg = "connection lost, reconnecting: {0}".format(reason)
         self.app.print_irc(msg)
         self.logger.error(msg)
         protocol.ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
 
     def clientConnectionFailed(self, connector, reason):
-        msg = "connection failed: %s" % (reason)
+        msg = "connection failed: {0}".format(reason)
         self.app.print_irc(msg)
         self.logger.error(msg)
         protocol.ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
